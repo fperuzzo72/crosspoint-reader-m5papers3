@@ -1,3 +1,33 @@
+# CrossPoint Reader — M5Stack PaperS3 port
+
+This is a fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader)
+1.5.0, ported to the official **M5Stack PaperS3** development kit
+([shop.m5stack.com](https://shop.m5stack.com/products/m5papers3-esp32s3-development-kit) —
+ESP32-S3R8, 4.7" 960×540 16-gray e-paper, GT911 touch, BM8563 RTC). Build with
+`pio run -e m5papers3`.
+
+The hardware support lives in a [freeink-sdk fork](https://github.com/fperuzzo72/freeink-sdk/tree/m5papers3-support)
+(new `FREEINK_DEVICE_M5PAPERS3` board profile), referenced by this repo's
+`freeink-sdk` submodule. **No physical unit was available for this port** — every
+pin was sourced from the official, MIT-licensed `m5stack/M5Unified`/`m5stack/M5GFX`
+vendor libraries. Before you flash a real device, read
+[`freeink-sdk/docs/m5papers3-support.md`](https://github.com/fperuzzo72/freeink-sdk/blob/m5papers3-support/docs/m5papers3-support.md)
+for the full CONFIRMED/PENDING breakdown — in short:
+
+- **CONFIRMED** (direct from vendor source): display bus pins, touch I²C/INT
+  pins and raw range, SD SPI pins, RTC address/bus, buzzer pin, charge-status
+  pin, and the (unusual) 5×-pulse power-off sequence.
+- **PENDING hardware validation**: display rotation value, touch flip
+  direction, battery voltage reading (no ADC/gauge pin identified), physical
+  navigation buttons (none found — currently modeled as touch-only), and the
+  IMU chip/address.
+
+This is **not** the same hardware as the freeink-sdk's existing `papermono`
+board (different touch chip, RTC, and power topology) — see the doc above for
+the comparison if you're not sure which one matches your device.
+
+---
+
 # CrossPoint Reader
 
 [![Fund contributors](https://img.shields.io/badge/%F0%9F%91%91_Fund_contributors-royalty.dev-BB953A?style=for-the-badge&labelColor=1a1a1a)](https://app.royalty.dev/crosspoint-reader/crosspoint-reader)
