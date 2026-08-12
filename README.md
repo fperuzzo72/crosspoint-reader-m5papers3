@@ -14,17 +14,16 @@ vendor libraries. Before you flash a real device, read
 [`freeink-sdk/docs/m5papers3-support.md`](https://github.com/fperuzzo72/freeink-sdk/blob/m5papers3-support/docs/m5papers3-support.md)
 for the full CONFIRMED/PENDING breakdown — in short:
 
-- **CONFIRMED** (direct from vendor source): display bus pins, touch I²C/INT
-  pins and raw range, SD SPI pins, RTC address/bus, buzzer pin, battery ADC pin
-  + divider, charge-status pin, and the (unusual) 5×-pulse power-off sequence.
-- **PENDING hardware validation**: display rotation value, touch flip
-  direction, physical navigation buttons (none found — currently modeled as
-  touch-only), and the IMU chip/address.
-
-The build compiles clean (`pio run -e m5papers3`, verified in CI-equivalent
-conditions: ESP32-S3, octal PSRAM, 82.9% flash / 18.5% RAM used) but has not
-yet been flashed to real hardware — see the PENDING items above before
-trusting display orientation or touch mapping on first boot.
+- **CONFIRMED** (direct from vendor source, and now bench-verified on a real
+  M5PaperS3): display bus pins + rotation, touch I²C/INT pins and raw range,
+  SD SPI pins, RTC address/bus, buzzer pin, battery ADC pin + divider,
+  charge-status pin, and the (unusual) 5×-pulse power-off sequence.
+- **Working on real hardware**: display renders correctly filling the panel,
+  and touch navigation (swipe-up-from-bottom opens the menu, general
+  navigation) functions.
+- **PENDING hardware validation**: precise touch corner-tap accuracy (works in
+  practice so far, not yet pixel-verified), physical navigation buttons (none
+  found — currently modeled as touch-only), and the IMU chip/address.
 
 This is **not** the same hardware as the freeink-sdk's existing `papermono`
 board (different touch chip, RTC, and power topology) — see the doc above for
