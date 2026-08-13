@@ -8,9 +8,11 @@ ESP32-S3R8, 4.7" 960×540 16-gray e-paper, GT911 touch, BM8563 RTC). Build with
 
 The hardware support lives in a [freeink-sdk fork](https://github.com/fperuzzo72/freeink-sdk/tree/m5papers3-support)
 (new `FREEINK_DEVICE_M5PAPERS3` board profile), referenced by this repo's
-`freeink-sdk` submodule. **No physical unit was available for this port** — every
-pin was sourced from the official, MIT-licensed `m5stack/M5Unified`/`m5stack/M5GFX`
-vendor libraries. Before you flash a real device, read
+`freeink-sdk` submodule. No physical unit was available when this port was
+first written — every pin was sourced from the official, MIT-licensed
+`m5stack/M5Unified`/`m5stack/M5GFX` vendor libraries — and it has since been
+bench-tested on a real M5PaperS3, with general operation reported working as
+of this update (testing is ongoing). Before you flash your own device, read
 [`freeink-sdk/docs/m5papers3-support.md`](https://github.com/fperuzzo72/freeink-sdk/blob/m5papers3-support/docs/m5papers3-support.md)
 for the full CONFIRMED/PENDING breakdown — in short:
 
