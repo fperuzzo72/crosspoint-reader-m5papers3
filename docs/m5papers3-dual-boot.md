@@ -14,8 +14,8 @@ switching apps writes 32 bytes and never touches an app image.
 
 The layout lives in [`partitions_m5papers3.csv`](../partitions_m5papers3.csv),
 and the identical table lives in `MicroBASIC-PaperS3/editor/partitions.csv`.
-**Those two files must stay byte-identical below their comment headers** —
-there is one table on the device, and each project only describes it.
+**Those two files must stay byte-identical below their comment headers.**
+There is one table on the device, and each project only describes it.
 
 ```
 nvs       data  nvs       0x9000     32K
@@ -28,7 +28,7 @@ spiffs    data  spiffs    0xD30000  2880K   (reserved; nothing uses it today)
 
 Slots are symmetric at 6656K rather than sized to today's binaries. CrossPoint
 needs ~5.2MB and sets the size for both; MicroBASIC uses ~1.7MB of its slot.
-Whatever project lands in a slot next should not force a re-partition — the
+Whatever project lands in a slot next should not force a re-partition. The
 whole point is that this table is written **once**.
 
 `nvs` is 32K rather than stock CrossPoint's 20K: 16/20K could not hold BLE
@@ -39,14 +39,14 @@ associating at all on this unit.
 ## One-time migration
 
 The unit currently runs MicroBASIC alone on a 3-partition layout with a 3MB
-`app0` — CrossPoint does not fit in it. Moving to the shared table means
+`app0`, which CrossPoint does not fit in. Moving to the shared table means
 writing the table itself plus both apps, once.
 
 Deliberately **not** via `pio run -t upload`: that also writes a freshly
 compiled `bootloader.bin` over the one on the device. The bootloader currently
 in flash is M5Launcher's original and is the only one ever confirmed to work
 here. It is no longer *believed* to be load-bearing (the "only Launcher's
-bootloader works" theory was disproven — see freeink-sdk's
+bootloader works" theory was disproven, see freeink-sdk's
 `docs/m5papers3-support.md`), but a fresh one has not been tested since, so
 leave it alone and there is nothing to undo.
 
@@ -132,15 +132,15 @@ hand-rolled one. Power-cycle with the physical button afterwards.
 
 ### From the device itself
 
-The Home menu lists any dual-boot sibling **after Settings** — "MicroBASIC"
-once that firmware has registered its own name, "OTA Slot 1" before it ever
-has. Selecting it points otadata at that slot and reboots straight into it.
+The Home menu lists any dual-boot sibling **after Settings**. It reads
+"MicroBASIC" once that firmware has registered its own name, "OTA Slot 1"
+before it ever has. Selecting it points otadata at that slot and reboots straight into it.
 
 There is no way back from this side yet: MicroBASIC has to grow the same entry
 point. Until it does, `editor/boot-slot.sh 0` over USB is the return path.
 
 `src/util/OtaApps.h` holds the whole mechanism, and only three things had to
-change around it — the Home menu's item count, its `default:` case, and one
+change around it: the Home menu's item count, its `default:` case, and one
 `registerOtaAppName("CrossPoint")` in `main.cpp`. It is gated behind
 `CROSSPOINT_DUAL_BOOT`, set only in `[env:m5papers3]`, so every other target
 compiles the stubs: nothing is detected and the menu grows no entries.
@@ -159,20 +159,20 @@ this is a direct port of:
 * `switchTo()` leaves the new slot's otadata state as "new" (pending verify),
   which is right for a genuine firmware update and wrong here: neither app
   calls `esp_ota_mark_app_valid_cancel_rollback()`, so the next reset would be
-  rolled back to the other slot — it shows up as waking from sleep in the
+  rolled back to the other slot. It shows up as waking from sleep in the
   previous app. `confirmLastOtaSwitch()` flips just that entry to valid,
   leaving the self-update path's rollback protection intact.
 
 ## The sibling-slot guard
 
-`esp_ota_get_next_update_partition()` returns "the other OTA slot" — which on
+`esp_ota_get_next_update_partition()` returns "the other OTA slot", which on
 this unit is the other *project*, not a spare copy of this firmware. Without a
 guard, CrossPoint's own SD/OTA self-update would erase MicroBASIC.
 
 `firmware_flash::destHoldsForeignApp()` compares the target partition's
 embedded `esp_app_desc_t.project_name` against the running app's and refuses
 with `Result::SIBLING_APP_PROTECTED` before erasing a single byte. An unflashed
-or unreadable target counts as safe — there is no sibling to protect.
+or unreadable target counts as safe, since there is no sibling to protect.
 
 This means **self-update is disabled on this unit while both slots are
 occupied**, by design. To update the reader, flash `app0` over USB.
