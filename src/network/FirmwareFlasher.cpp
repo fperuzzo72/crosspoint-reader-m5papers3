@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <HalStorage.h>
 #include <Logging.h>
+#include <esp_app_format.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
 #include <mbedtls/sha256.h>
@@ -62,6 +63,8 @@ const char* resultName(Result r) {
       return "WRITE_FAIL";
     case Result::OTADATA_FAIL:
       return "OTADATA_FAIL";
+    case Result::SIBLING_APP_PROTECTED:
+      return "SIBLING_APP_PROTECTED";
   }
   return "?";
 }
@@ -255,6 +258,16 @@ Result validateImageFile(const char* sdPath, size_t partitionSize) {
   return Result::OK;
 }
 
+bool destHoldsForeignApp(const esp_partition_t* dest) {
+  const esp_partition_t* running = esp_ota_get_running_partition();
+  if (!running) return false;
+  esp_app_desc_t myDesc;
+  esp_app_desc_t destDesc;
+  if (esp_ota_get_partition_description(running, &myDesc) != ESP_OK) return false;
+  if (esp_ota_get_partition_description(dest, &destDesc) != ESP_OK) return false;
+  return strncmp(myDesc.project_name, destDesc.project_name, sizeof(myDesc.project_name)) != 0;
+}
+
 Result flashFromSdPath(const char* sdPath, ProgressCb onProgress, void* ctx, bool alreadyValidated) {
   // Resolve destination first so we can size-check during validation. The full image-integrity
   // pass below verifies header, segment table, XOR checksum and SHA256 trailer end-to-end before
@@ -263,6 +276,14 @@ Result flashFromSdPath(const char* sdPath, ProgressCb onProgress, void* ctx, boo
   if (!dest) {
     LOG_ERR("FLASH", "no next-update partition");
     return Result::NO_PARTITION;
+  }
+
+  // On a dual-boot unit the "next update partition" is the sibling app's slot,
+  // not a spare copy of this firmware. Refuse before erasing a single byte.
+  if (destHoldsForeignApp(dest)) {
+    LOG_ERR("FLASH", "next-update partition '%s' holds a different app (dual-boot sibling) -- refusing to overwrite",
+            dest->label);
+    return Result::SIBLING_APP_PROTECTED;
   }
 
   // When the caller already ran validateImageFile() against this same partition

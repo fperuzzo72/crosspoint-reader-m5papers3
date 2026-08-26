@@ -1,5 +1,7 @@
 #pragma once
 
+#include <esp_partition.h>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -31,6 +33,7 @@ enum class Result {
   ERASE_FAIL,
   WRITE_FAIL,
   OTADATA_FAIL,
+  SIBLING_APP_PROTECTED,  // next-update partition holds a foreign app (dual-boot sibling)
 };
 
 // Progress callback: called after every chunk write. `written`/`total` are bytes.
@@ -60,6 +63,16 @@ Result flashFromSdPath(const char* sdPath, ProgressCb onProgress, void* ctx, boo
 Result validateImageFile(const char* sdPath, size_t partitionSize);
 
 const char* resultName(Result r);
+
+// True if `dest` currently holds a different app than the one running now --
+// i.e. it is a dual-boot sibling rather than a spare A/B slot for this same
+// firmware. On the M5PaperS3 dev unit app1 holds MicroBASIC, and
+// esp_ota_get_next_update_partition() points straight at it, so a self-update
+// would silently overwrite it. An unflashed or unreadable partition (no valid
+// esp_app_desc_t) counts as safe: there is no sibling to protect. Exposed so a
+// caller can refuse before showing the user an update prompt, not only once
+// flashing has started.
+bool destHoldsForeignApp(const esp_partition_t* dest);
 
 // Returns the chip_id (esp_image_header_t offset 12) of the currently-running
 // image, or 0xFFFF if it cannot be read. Because the running slot booted

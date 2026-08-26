@@ -1,0 +1,35 @@
+# M5Stack PaperS3 (16MB flash) -- SHARED dual-boot table.
+#
+# This device carries two firmwares at once so more than one project can be
+# developed against the same physical unit without reflashing the layout every
+# time we switch. The table itself is the contract: it is written to the device
+# ONCE, and both projects describe it identically.
+#
+#   app0 / ota_0  CrossPoint reader      (this repo, ~5.2MB today)
+#   app1 / ota_1  MicroBASIC             (MicroBASIC-PaperS3/editor/partitions.csv,
+#                                         which MUST stay byte-identical to this
+#                                         file below the comment header)
+#
+# The bootloader picks the slot from otadata, so switching apps never touches
+# an app image -- see docs/m5papers3-dual-boot.md.
+#
+# Slots are symmetric at 6656K rather than sized to today's binaries: whichever
+# project lands in a slot next should not force a re-partition. The offsets are
+# what everything else is pinned to (platformio.ini's offset_address, the
+# flashing recipes in the docs), so treat a change here as a device-wide
+# migration, not an edit.
+#
+# Deliberately NOT the stock CrossPoint layout (partitions.csv): nvs is 32K
+# instead of 20K -- 16/20K could not hold BLE bonds + saved WiFi credentials +
+# the WiFi radio's own PHY calibration blob at the same time, and the
+# calibration write failing silently is what stopped WiFi associating at all on
+# this unit. otadata and the app slots move accordingly (app partitions must be
+# 64K-aligned, hence 0x20000 rather than 0x13000).
+#
+# Name,     Type, SubType,  Offset,    Size,      Flags
+nvs,        data, nvs,      0x9000,    0x8000,
+otadata,    data, ota,      0x11000,   0x2000,
+app0,       app,  ota_0,    0x20000,   0x680000,
+app1,       app,  ota_1,    0x6A0000,  0x680000,
+coredump,   data, coredump, 0xD20000,  0x10000,
+spiffs,     data, spiffs,   0xD30000,  0x2D0000,
