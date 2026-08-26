@@ -50,11 +50,22 @@ bootloader works" theory was disproven — see freeink-sdk's
 `docs/m5papers3-support.md`), but a fresh one has not been tested since, so
 leave it alone and there is nothing to undo.
 
-Back up first, then:
+Every command below runs **from this repo's root** (the paths to
+`partitions_m5papers3.csv` and to the build output are relative to it), with
+`PORT` set:
+
+```bash
+cd ~/github/crosspoint-reader-m5papers3
+export PORT=$(ls /dev/cu.usbmodem* | head -1)
+```
+
+Back up first:
 
 ```bash
 esptool.py --chip esp32s3 --port "$PORT" --baud 921600 read_flash 0x0 0x1000000 backup.bin
 ```
+
+Then:
 
 ```bash
 python3 ~/.platformio/packages/framework-espidf/components/partition_table/gen_esp32part.py \
@@ -67,7 +78,13 @@ esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x20000 .pio/build/m5papers3/firmware.bin
 ```
 
-Then build MicroBASIC and write its `firmware.bin` at `0x6A0000`.
+Then build MicroBASIC and write its `firmware.bin` at `0x6A0000`:
+
+```bash
+cd ~/github/MicroBASIC-PaperS3/editor && pio run
+esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
+    write_flash 0x6A0000 .pio/build/m5papers3/firmware.bin
+```
 
 An erased `otadata` makes the bootloader pick `ota_0`, so the unit comes up in
 CrossPoint. Power-cycle with the physical button.
