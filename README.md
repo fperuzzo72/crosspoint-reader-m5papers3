@@ -2,19 +2,19 @@
 
 This is a fork of [CrossPoint Reader](https://github.com/crosspoint-reader/crosspoint-reader)
 1.5.0, ported to the official **M5Stack PaperS3** development kit
-([shop.m5stack.com](https://shop.m5stack.com/products/m5papers3-esp32s3-development-kit) —
-ESP32-S3R8, 4.7" 960×540 16-gray e-paper, GT911 touch, BM8563 RTC). Build with
-`pio run -e m5papers3`.
+([shop.m5stack.com](https://shop.m5stack.com/products/m5papers3-esp32s3-development-kit)).
+That board is an ESP32-S3R8 with a 4.7" 960×540 16-gray e-paper panel, GT911
+touch and a BM8563 RTC. Build with `pio run -e m5papers3`.
 
 The hardware support lives in a [freeink-sdk fork](https://github.com/fperuzzo72/freeink-sdk/tree/m5papers3-support)
 (new `FREEINK_DEVICE_M5PAPERS3` board profile), referenced by this repo's
 `freeink-sdk` submodule. No physical unit was available when this port was
-first written — every pin was sourced from the official, MIT-licensed
-`m5stack/M5Unified`/`m5stack/M5GFX` vendor libraries — and it has since been
+first written, so every pin was sourced from the official, MIT-licensed
+`m5stack/M5Unified`/`m5stack/M5GFX` vendor libraries. It has since been
 bench-tested on a real M5PaperS3, with general operation reported working as
 of this update (testing is ongoing). Before you flash your own device, read
 [`freeink-sdk/docs/m5papers3-support.md`](https://github.com/fperuzzo72/freeink-sdk/blob/m5papers3-support/docs/m5papers3-support.md)
-for the full CONFIRMED/PENDING breakdown — in short:
+for the full CONFIRMED/PENDING breakdown. In short:
 
 - **CONFIRMED** (direct from vendor source, and now bench-verified on a real
   M5PaperS3): display bus pins + rotation, touch I²C/INT pins and raw range,
@@ -25,10 +25,11 @@ for the full CONFIRMED/PENDING breakdown — in short:
   navigation) functions.
 - **PENDING hardware validation**: precise touch corner-tap accuracy (works in
   practice so far, not yet pixel-verified), physical navigation buttons (none
-  found — currently modeled as touch-only), and the IMU chip/address.
+  found, so they are currently modeled as touch-only), and the IMU
+  chip/address.
 
 This is **not** the same hardware as the freeink-sdk's existing `papermono`
-board (different touch chip, RTC, and power topology) — see the doc above for
+board (different touch chip, RTC, and power topology). See the doc above for
 the comparison if you're not sure which one matches your device.
 
 ## Dual-boot: sharing the device with MicroBASIC
