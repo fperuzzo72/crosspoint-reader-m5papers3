@@ -57,12 +57,13 @@ Every command below runs **from this repo's root** (the paths to
 ```bash
 cd ~/github/crosspoint-reader-m5papers3
 export PORT=$(ls /dev/cu.usbmodem* | head -1)
+export ESPTOOL=~/.platformio/penv/bin/esptool.py   # not on PATH; it lives in PlatformIO's venv
 ```
 
 Back up first:
 
 ```bash
-esptool.py --chip esp32s3 --port "$PORT" --baud 921600 read_flash 0x0 0x1000000 backup.bin
+"$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 read_flash 0x0 0x1000000 backup.bin
 ```
 
 Then:
@@ -70,11 +71,11 @@ Then:
 ```bash
 python3 ~/.platformio/packages/framework-espidf/components/partition_table/gen_esp32part.py \
     --flash-size 16MB partitions_m5papers3.csv /tmp/pt.bin
-esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
+"$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x8000 /tmp/pt.bin
-esptool.py --chip esp32s3 --port "$PORT" erase_region 0x9000 0x8000    # nvs, moved/resized
-esptool.py --chip esp32s3 --port "$PORT" erase_region 0x11000 0x2000   # otadata -> boots app0
-esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
+"$ESPTOOL" --chip esp32s3 --port "$PORT" erase_region 0x9000 0x8000    # nvs, moved/resized
+"$ESPTOOL" --chip esp32s3 --port "$PORT" erase_region 0x11000 0x2000   # otadata -> boots app0
+"$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x20000 .pio/build/m5papers3/firmware.bin
 ```
 
@@ -82,7 +83,7 @@ Then build MicroBASIC and write its `firmware.bin` at `0x6A0000`:
 
 ```bash
 cd ~/github/MicroBASIC-PaperS3/editor && pio run
-esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
+"$ESPTOOL" --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x6A0000 .pio/build/m5papers3/firmware.bin
 ```
 
@@ -95,9 +96,12 @@ Build, then write only the app, only into your own slot:
 
 ```bash
 pio run -e m5papers3
-esptool.py --chip esp32s3 --port "$PORT" --baud 921600 \
+~/.platformio/penv/bin/esptool.py --chip esp32s3 --port /dev/cu.usbmodem101 --baud 921600 \
     write_flash 0x20000 .pio/build/m5papers3/firmware.bin
 ```
+
+`esptool.py` is not on `PATH` by default: PlatformIO keeps it in its own venv,
+which is the copy that matches the toolchain this project builds with.
 
 `board_upload.offset_address` and `board_upload.maximum_size` in
 `[env:m5papers3]` track the `app0` row, so "Checking size" measures against the
@@ -180,7 +184,7 @@ intact if the Launcher picker is ever wanted back.
 Read the live table before trusting any offset here:
 
 ```bash
-esptool.py --chip esp32s3 --port "$PORT" read_flash 0x8000 0xC00 /tmp/pt.bin && \
+~/.platformio/penv/bin/esptool.py --chip esp32s3 --port /dev/cu.usbmodem101 read_flash 0x8000 0xC00 /tmp/pt.bin && \
 python3 ~/.platformio/packages/framework-espidf/components/partition_table/gen_esp32part.py /tmp/pt.bin
 ```
 
