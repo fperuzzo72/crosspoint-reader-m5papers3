@@ -5,12 +5,17 @@
 #include "./FileBrowserActivity.h"
 #include "activities/Activity.h"
 #include "util/ButtonNavigator.h"
+#include "util/OtaApps.h"
 
 struct RecentBook;
 struct Rect;
 
 class HomeActivity final : public Activity {
   ButtonNavigator buttonNavigator;
+  // Dual-boot siblings, listed after Settings. Empty on every build
+  // without CROSSPOINT_DUAL_BOOT, which is all of them but m5papers3.
+  OtaAppEntry otaApps[MAX_OTA_APPS] = {};
+  int otaAppCount = 0;
   int selectorIndex = 0;
   bool recentsLoading = false;
   bool recentsLoaded = false;

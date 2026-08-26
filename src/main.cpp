@@ -33,6 +33,7 @@
 #include "fontIds.h"
 #include "images/LoadingIcon.h"
 #include "util/ButtonNavigator.h"
+#include "util/OtaApps.h"
 #include "util/ScreenshotUtil.h"
 
 GfxRenderer renderer(display);
@@ -289,6 +290,9 @@ void setup() {
   silentRebootTarget = 0;
 
   gpio.begin();
+  // Lets a dual-boot sibling list this firmware by name rather than by
+  // slot number. No-op unless CROSSPOINT_DUAL_BOOT is set.
+  registerOtaAppName("CrossPoint");
   powerManager.begin();
   halTiltSensor.begin();
   halClock.begin();

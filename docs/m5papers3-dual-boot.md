@@ -112,6 +112,8 @@ flash didn't take".
 
 ## Switching which app boots
 
+### From the host
+
 ```bash
 scripts/m5papers3-boot-slot.sh        # what is selected now
 scripts/m5papers3-boot-slot.sh 0      # CrossPoint
@@ -122,11 +124,38 @@ That wraps ESP-IDF's own `otatool.py`, so the `otadata` entry (a sequence
 number plus its CRC) is written by the vendor's implementation rather than a
 hand-rolled one. Power-cycle with the physical button afterwards.
 
-On-device, `ota_boot::switchTo()` in
-[`src/network/OtaBootSwitch.cpp`](../src/network/OtaBootSwitch.cpp) does the
-same thing from inside the running firmware. There is no UI wired to it here
-yet; `MicroBASIC-PaperS3/patches/cpr-vcodex/` has a worked-out Home-menu
-shortcut against the CPR-vCodex fork if that is ever wanted in this tree.
+### From the device itself
+
+The Home menu lists any dual-boot sibling **after Settings** — "MicroBASIC"
+once that firmware has registered its own name, "OTA Slot 1" before it ever
+has. Selecting it points otadata at that slot and reboots straight into it.
+
+There is no way back from this side yet: MicroBASIC has to grow the same entry
+point. Until it does, `editor/boot-slot.sh 0` over USB is the return path.
+
+`src/util/OtaApps.h` holds the whole mechanism, and only three things had to
+change around it — the Home menu's item count, its `default:` case, and one
+`registerOtaAppName("CrossPoint")` in `main.cpp`. It is gated behind
+`CROSSPOINT_DUAL_BOOT`, set only in `[env:m5papers3]`, so every other target
+compiles the stubs: nothing is detected and the menu grows no entries.
+
+A slot only counts as a sibling if it holds a *different* project, tested with
+the same `esp_app_desc_t.project_name` comparison the self-update guard uses.
+An empty slot, or a stale A/B copy of this same firmware, is not offered.
+
+Two details worth knowing, both inherited from MicroWriter's patch sets
+(`MicroBASIC-PaperS3/patches/`, `MicroWriter/patches/crosspoint-1.5.0/`), which
+this is a direct port of:
+
+* The switch goes through `ota_boot::switchTo()` rather than
+  `esp_ota_set_boot_partition()`, which fails on this silicon with a bogus
+  efuse-blk-rev verification error.
+* `switchTo()` leaves the new slot's otadata state as "new" (pending verify),
+  which is right for a genuine firmware update and wrong here: neither app
+  calls `esp_ota_mark_app_valid_cancel_rollback()`, so the next reset would be
+  rolled back to the other slot — it shows up as waking from sleep in the
+  previous app. `confirmLastOtaSwitch()` flips just that entry to valid,
+  leaving the self-update path's rollback protection intact.
 
 ## The sibling-slot guard
 

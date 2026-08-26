@@ -21,7 +21,7 @@
 #include "fontIds.h"
 
 int HomeActivity::getMenuItemCount() const {
-  int count = 4;  // File Browser, Recents, File transfer, Settings
+  int count = 4 + otaAppCount;  // File Browser, Recents, File transfer, Settings, dual-boot apps
   if (!recentBooks.empty()) {
     count += recentBooks.size();
   }
@@ -112,6 +112,7 @@ void HomeActivity::onEnter() {
   Activity::onEnter();
 
   hasOpdsServers = OPDS_STORE.hasServers();
+  otaAppCount = detectOtaApps(otaApps, MAX_OTA_APPS);
 
   const auto& metrics = UITheme::getInstance().getMetrics();
   loadRecentBooks(metrics.homeRecentBooksCount);
@@ -192,8 +193,16 @@ void HomeActivity::loop() {
       case HomeMenuItem::SETTINGS_MENU:
         onSettingsOpen();
         break;
-      default:
+      default: {
+        // indexToMenuItem() returns NONE past Settings, which is where the
+        // dual-boot siblings live.
+        const int builtInMenuCount = hasOpdsServers ? 5 : 4;
+        const int otaIdx = menuIndex - builtInMenuCount;
+        if (otaIdx >= 0 && otaIdx < otaAppCount) {
+          switchToOtaApp(otaApps[otaIdx].partitionSubtype);  // reboots
+        }
         break;
+      }
     }
   };
 
@@ -313,6 +322,11 @@ void HomeActivity::render(RenderLock&&) {
     // Insert Continue Reading at the top if enabled in theme
     menuItems.insert(menuItems.begin(), tr(STR_CONTINUE_READING));
     menuIcons.insert(menuIcons.begin(), Book);
+  }
+
+  for (int i = 0; i < otaAppCount; i++) {
+    menuItems.push_back(otaApps[i].name);
+    menuIcons.push_back(Text);
   }
 
   GUI.drawButtonMenu(
