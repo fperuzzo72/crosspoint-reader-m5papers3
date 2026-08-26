@@ -31,6 +31,43 @@ This is **not** the same hardware as the freeink-sdk's existing `papermono`
 board (different touch chip, RTC, and power topology) — see the doc above for
 the comparison if you're not sure which one matches your device.
 
+## Dual-boot: sharing the device with MicroBASIC
+
+The dev unit this port is developed on carries **two unrelated firmwares at
+once**, so more than one project can use the same physical board without
+reflashing the layout every time:
+
+```
+app0 / ota_0  0x20000   6656K   CrossPoint (this repo)
+app1 / ota_1  0x6A0000  6656K   MicroBASIC (github.com/fperuzzo72/MicroBASIC-PaperS3)
+```
+
+The bootloader picks between them from `otadata`, so switching writes 32 bytes
+and never touches an app image. On this build the Home menu lists the sibling
+**after Settings**; selecting it reboots straight into it. MicroBASIC has the
+same switch on its own status bar, so both directions work from the device.
+`scripts/m5papers3-boot-slot.sh 0|1` does it from the host.
+
+Gated behind `CROSSPOINT_DUAL_BOOT`, set only in `[env:m5papers3]`. Every
+other target links stubs, detects nothing, and shows no extra menu entries. A
+slot counts as a sibling only if it holds a *different* project, so a spare A/B
+copy of this same firmware is never offered.
+
+**Flashing this board is not the same as flashing an X3/X4.** The web installer
+and upstream's "Install firmware" section below do not apply: this device uses
+its own partition table (`partitions_m5papers3.csv`, not `partitions.csv`), and
+you write the app alone into its slot rather than a merged image. `pio run -t
+upload` is wrong here too, since it also writes the bootloader, the partition
+table, and a `boot_app0.bin` that resets the boot selection to slot 0.
+
+For the same reason, CrossPoint's own SD/OTA **self-update refuses to run**
+while a sibling occupies the other slot: its target is "the next OTA
+partition", which here is MicroBASIC. Update over USB instead.
+
+[`docs/m5papers3-dual-boot.md`](docs/m5papers3-dual-boot.md) has all of it:
+the layout, the one-time migration, the day-to-day flashing recipe, and
+recovery.
+
 ---
 
 # CrossPoint Reader
