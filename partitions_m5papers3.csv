@@ -6,7 +6,7 @@
 # ONCE, and both projects describe it identically.
 #
 #   app0 / ota_0  CrossPoint reader      (this repo, ~5.2MB today)
-#   app1 / ota_1  MicroBASIC             (MicroBASIC-PaperS3/editor/partitions.csv,
+#   app1 / ota_1  MicroBASIC/MicroWriter (MicroWriter-BASIC-PaperS3/editor/partitions.csv,
 #                                         which MUST stay byte-identical to this
 #                                         file below the comment header)
 #

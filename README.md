@@ -40,7 +40,8 @@ reflashing the layout every time:
 
 ```
 app0 / ota_0  0x20000   6656K   CrossPoint (this repo)
-app1 / ota_1  0x6A0000  6656K   MicroBASIC (github.com/fperuzzo72/MicroBASIC-PaperS3)
+app1 / ota_1  0x6A0000  6656K   MicroBASIC or MicroWriter
+                                (github.com/fperuzzo72/MicroWriter-BASIC-PaperS3)
 ```
 
 The bootloader picks between them from `otadata`, so switching writes 32 bytes

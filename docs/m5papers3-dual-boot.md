@@ -7,13 +7,16 @@ layout every time we switch:
 | slot | subtype | offset     | size   | app                                        |
 |------|---------|------------|--------|--------------------------------------------|
 | app0 | `ota_0` | `0x20000`  | 6656K  | CrossPoint reader (this repo, ~5.2MB today) |
-| app1 | `ota_1` | `0x6A0000` | 6656K  | MicroBASIC (`MicroBASIC-PaperS3`)           |
+| app1 | `ota_1` | `0x6A0000` | 6656K  | MicroBASIC or MicroWriter (`MicroWriter-BASIC-PaperS3`) |
 
 The bootloader picks between them from the 8KB `otadata` partition, so
 switching apps writes 32 bytes and never touches an app image.
 
 The layout lives in [`partitions_m5papers3.csv`](../partitions_m5papers3.csv),
-and the identical table lives in `MicroBASIC-PaperS3/editor/partitions.csv`.
+and the identical table lives in
+`MicroWriter-BASIC-PaperS3/editor/partitions.csv`. That repo builds two
+firmwares -- MicroBASIC and MicroWriter -- which share this slot, one at a
+time; either way app0 is untouched.
 **Those two files must stay byte-identical below their comment headers.**
 There is one table on the device, and each project only describes it.
 
@@ -87,7 +90,7 @@ python3 -m esptool --chip esp32s3 --port "$PORT" --baud 921600 \
 Then build MicroBASIC and write its `firmware.bin` at `0x6A0000`:
 
 ```bash
-cd ~/github/MicroBASIC-PaperS3/editor && pio run
+cd ~/github/MicroWriter-BASIC-PaperS3/editor && pio run
 python3 -m esptool --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x6A0000 .pio/build/m5papers3/firmware.bin
 ```
@@ -150,7 +153,7 @@ the same `esp_app_desc_t.project_name` comparison the self-update guard uses.
 An empty slot, or a stale A/B copy of this same firmware, is not offered.
 
 Two details worth knowing, both inherited from MicroWriter's patch sets
-(`MicroBASIC-PaperS3/patches/`, `MicroWriter/patches/crosspoint-1.5.0/`), which
+(`MicroWriter-BASIC-PaperS3/patches/`, `MicroWriter/patches/crosspoint-1.5.0/`), which
 this is a direct port of:
 
 * The switch goes through `ota_boot::switchTo()` rather than

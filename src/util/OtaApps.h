@@ -10,7 +10,7 @@
 // The register/detect/switch scheme is ported from MicroSlate
 // (github.com/Josh-writes/microslate-firmware), itself adapted from CrossInk's
 // build-time dual-boot patch (uxjulia/CrossInk), and matches the patch sets in
-// MicroBASIC-PaperS3/patches/ so the two stay diffable. Identifier names are
+// MicroWriter-BASIC-PaperS3/patches/ so the two stay diffable. Identifier names are
 // deliberately kept the same as those patches.
 //
 // The low-level otadata write is NOT duplicated here: ota_boot::switchTo()
