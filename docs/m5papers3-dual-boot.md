@@ -1,38 +1,50 @@
-# M5PaperS3 dual-boot: two projects, one device
+# M5PaperS3 multi-boot: three projects, one device
 
-The M5PaperS3 dev unit carries **two firmwares at once**, so more than one
+The M5PaperS3 dev unit carries **three firmwares at once**, so more than one
 project can be developed against the same physical board without reflashing the
 layout every time we switch:
 
 | slot | subtype | offset     | size   | app                                        |
 |------|---------|------------|--------|--------------------------------------------|
-| app0 | `ota_0` | `0x20000`  | 6656K  | CrossPoint reader (this repo, ~5.2MB today) |
-| app1 | `ota_1` | `0x6A0000` | 6656K  | MicroBASIC or MicroWriter (`MicroWriter-BASIC-PaperS3`) |
+| app0 | `ota_0` | `0x20000`  | 6M     | CrossPoint reader (this repo, ~5.2MB today) |
+| app1 | `ota_1` | `0x620000` | 2560K  | MicroBASIC or MicroWriter (`MicroWriter-BASIC-PaperS3`) |
+| app2 | `ota_2` | `0x8A0000` | 7488K  | RetroComputer (`RetroComputer-MultiBoard`) |
 
-The bootloader picks between them from the 8KB `otadata` partition, so
+The bootloader picks among them from the 8KB `otadata` partition, so
 switching apps writes 32 bytes and never touches an app image.
 
 The layout lives in [`partitions_m5papers3.csv`](../partitions_m5papers3.csv),
 and the identical table lives in
-`MicroWriter-BASIC-PaperS3/editor/partitions.csv`. That repo builds two
-firmwares -- MicroBASIC and MicroWriter -- which share this slot, one at a
+`MicroWriter-BASIC-PaperS3/editor/partitions.csv` and
+`RetroComputer-MultiBoard/partitions-papers3.csv`. The MicroBASIC repo builds
+two firmwares -- MicroBASIC and MicroWriter -- which share app1, one at a
 time; either way app0 is untouched.
-**Those two files must stay byte-identical below their comment headers.**
+**Those three files must stay byte-identical below their comment headers.**
 There is one table on the device, and each project only describes it.
 
 ```
 nvs       data  nvs       0x9000     32K
 otadata   data  ota       0x11000     8K
-app0      app   ota_0     0x20000   6656K   <- CrossPoint
-app1      app   ota_1     0x6A0000  6656K   <- MicroBASIC
-coredump  data  coredump  0xD20000    64K
-spiffs    data  spiffs    0xD30000  2880K   (reserved; nothing uses it today)
+app0      app   ota_0     0x20000    6M     <- CrossPoint     (~5.2MB)
+app1      app   ota_1     0x620000   2560K  <- MicroBASIC     (~1.7MB)
+app2      app   ota_2     0x8A0000   7488K  <- RetroComputer  (~5.5MB)
+coredump  data  coredump  0xFF0000    64K
 ```
 
-Slots are symmetric at 6656K rather than sized to today's binaries. CrossPoint
-needs ~5.2MB and sets the size for both; MicroBASIC uses ~1.7MB of its slot.
-Whatever project lands in a slot next should not force a re-partition. The
-whole point is that this table is written **once**.
+Since 2026-09-30 the table has **three** app slots, each sized to its app
+with room to grow, where it used to have two symmetric 6656K slots and an
+unused 2880K `spiffs`. CrossPoint has ~0.8MB spare for a rebase onto upstream
+1.6.x (this port is on 1.5.0), MicroBASIC ~0.8MB for what is still to come,
+and RetroComputer (MSX, Spectrum and Macintosh emulators,
+`RetroComputer-MultiBoard`, `partitions-papers3.csv`) takes the rest. `nvs`
+and `otadata` did not move in the migration, so settings, BLE bonds and WiFi
+survived it. Its backup and the images written are in
+`~/github/_backups/papers3-2026-09-30/`.
+
+With three slots, the otadata sequence that boots slot N is the one where
+`(seq - 1) % 3 == N`. Both switch implementations used to assume `% 2` and
+now count the OTA partitions; a firmware still carrying `% 2` lands on the
+wrong app.
 
 `nvs` is 32K rather than stock CrossPoint's 20K: 16/20K could not hold BLE
 bonds, saved WiFi credentials and the WiFi radio's own PHY calibration blob at
@@ -87,12 +99,12 @@ python3 -m esptool --chip esp32s3 --port "$PORT" --baud 921600 \
     write_flash 0x20000 .pio/build/m5papers3/firmware.bin
 ```
 
-Then build MicroBASIC and write its `firmware.bin` at `0x6A0000`:
+Then build MicroBASIC and write its `firmware.bin` at `0x620000`:
 
 ```bash
 cd ~/github/MicroWriter-BASIC-PaperS3/editor && pio run
 python3 -m esptool --chip esp32s3 --port "$PORT" --baud 921600 \
-    write_flash 0x6A0000 .pio/build/m5papers3/firmware.bin
+    write_flash 0x620000 .pio/build/m5papers3/firmware.bin
 ```
 
 An erased `otadata` makes the bootloader pick `ota_0`, so the unit comes up in
@@ -110,7 +122,7 @@ python3 -m esptool --chip esp32s3 --port /dev/cu.usbmodem101 --baud 921600 \
 
 `board_upload.offset_address` and `board_upload.maximum_size` in
 `[env:m5papers3]` track the `app0` row, so "Checking size" measures against the
-real 6656K ceiling.
+real 6M ceiling.
 
 **Do not use `pio run -t upload` for routine flashing.** It writes four images,
 not one: `bootloader.bin` at `0x0`, the partition table at `0x8000`,

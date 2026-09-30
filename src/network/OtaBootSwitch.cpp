@@ -54,10 +54,24 @@ bool switchTo(const esp_partition_t* dest) {
     return false;
   }
 
-  // Find smallest seq > activeSeq such that (seq-1) % 2 == destOtaIdx,
-  // assuming 2 OTA partitions (matches our partitions.csv with ota_0 + ota_1).
+  // The bootloader boots slot (seq-1) % <number of OTA app partitions>, so
+  // find the smallest seq > activeSeq that lands on dest. Counted, not
+  // assumed: the M5PaperS3's table has three (CrossPoint, MicroBASIC,
+  // RetroComputer), and a hard-coded 2 picked the wrong app.
+  uint32_t otaCount = 0;
+  esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+  for (; it; it = esp_partition_next(it)) {
+    const esp_partition_t* p = esp_partition_get(it);
+    if (p->subtype >= ESP_PARTITION_SUBTYPE_APP_OTA_0 && p->subtype <= ESP_PARTITION_SUBTYPE_APP_OTA_15) ++otaCount;
+  }
+  esp_partition_iterator_release(it);
+  if (destOtaIdx >= otaCount) {
+    LOG_ERR("BOOT", "dest ota_%u is past the %u OTA slots", static_cast<unsigned>(destOtaIdx),
+            static_cast<unsigned>(otaCount));
+    return false;
+  }
   uint32_t newSeq = activeSeq + 1;
-  while (((newSeq - 1u) % 2u) != (destOtaIdx % 2u)) ++newSeq;
+  while (((newSeq - 1u) % otaCount) != destOtaIdx) ++newSeq;
 
   SelectEntry next = {};
   next.ota_seq = newSeq;
