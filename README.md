@@ -75,9 +75,9 @@ same switch on its own status bar, so both directions work from the device.
 `scripts/m5papers3-boot-slot.sh 0|1` does it from the host.
 
 Gated behind `CROSSPOINT_DUAL_BOOT`, set only in `[env:m5papers3]`. Every
-other target links stubs, detects nothing, and shows no extra menu entries. A
-slot counts as a sibling only if it holds a *different* project, so a spare A/B
-copy of this same firmware is never offered.
+other target links stubs, detects nothing, and shows no extra menu entries.
+Every other slot holding a valid image counts as a sibling, and the same rule
+decides what the self-update refuses to overwrite.
 
 **Flashing this board is not the same as flashing an X3/X4.** The web installer
 and upstream's "Install firmware" section below do not apply: this device uses

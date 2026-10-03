@@ -67,14 +67,22 @@ Result validateImageFile(const char* sdPath, size_t partitionSize);
 
 const char* resultName(Result r);
 
-// True if `dest` currently holds a different app than the one running now --
-// i.e. it is a dual-boot sibling rather than a spare A/B slot for this same
-// firmware. On the M5PaperS3 dev unit app1 holds MicroBASIC, and
-// esp_ota_get_next_update_partition() points straight at it, so a self-update
-// would silently overwrite it. An unflashed or unreadable partition (no valid
-// esp_app_desc_t) counts as safe: there is no sibling to protect. Exposed so a
-// caller can refuse before showing the user an update prompt, not only once
-// flashing has started.
+// True if `dest` holds another app that must not be overwritten: a dual-boot
+// sibling rather than a spare A/B slot for this same firmware. On the M5PaperS3
+// unit app1/app2 hold MicroBASIC and RetroComputer, and
+// esp_ota_get_next_update_partition() points straight at one of them.
+//
+// With CROSSPOINT_DUAL_BOOT, any other slot holding a valid image counts: every
+// slot there belongs to another project by construction, and project_name
+// cannot tell them apart (all images built against the prebuilt Arduino libs
+// say "arduino-lib-builder"). Without it, the classic test stands: a different
+// project_name than the running image. Either way an unflashed or unreadable
+// partition (no esp_app_desc_t) counts as safe, with nothing to protect.
+//
+// Also the Home menu's definition of a sibling (detectOtaApps), so "shown on
+// Home" and "protected from self-update" can never disagree. Exposed so a
+// caller can refuse before showing an update prompt, not only once flashing
+// has started.
 bool destHoldsForeignApp(const esp_partition_t* dest);
 
 // Returns the chip_id (esp_image_header_t offset 12) of the currently-running

@@ -160,9 +160,14 @@ change around it: the Home menu's item count, its `default:` case, and one
 `CROSSPOINT_DUAL_BOOT`, set only in `[env:m5papers3]`, so every other target
 compiles the stubs: nothing is detected and the menu grows no entries.
 
-A slot only counts as a sibling if it holds a *different* project, tested with
-the same `esp_app_desc_t.project_name` comparison the self-update guard uses.
-An empty slot, or a stale A/B copy of this same firmware, is not offered.
+Every other slot holding a valid image is offered, and an empty slot is
+skipped. It used to require a *different* `esp_app_desc_t.project_name`, and
+that broke on 1.6.5: an env that extends only `base` links the prebuilt Arduino
+libs, and every image built that way is stamped `arduino-lib-builder`. This
+firmware, MicroBASIC and RetroComputer all carry that name, so the siblings
+looked like copies of CrossPoint and vanished from Home. On a dual-boot unit
+every other slot belongs to another project by construction anyway, so a name
+was never needed to say so.
 
 **The Cover Grid theme does not show the siblings.** Added in upstream 1.6.5,
 it builds its own home items and its own navigation, and nothing appends to
@@ -191,12 +196,21 @@ this is a direct port of:
 this unit is the other *project*, not a spare copy of this firmware. Without a
 guard, CrossPoint's own SD/OTA self-update would erase MicroBASIC.
 
-`firmware_flash::destHoldsForeignApp()` compares the target partition's
-embedded `esp_app_desc_t.project_name` against the running app's and refuses
-with `Result::SIBLING_APP_PROTECTED` before erasing a single byte. An unflashed
-or unreadable target counts as safe, since there is no sibling to protect.
+`firmware_flash::destHoldsForeignApp()` refuses with
+`Result::SIBLING_APP_PROTECTED` before erasing a single byte whenever the target
+holds a valid image. It is the same function the Home menu uses to decide what
+to list, so "shown on Home" and "protected from self-update" cannot disagree.
+An unflashed or unreadable target counts as safe, since there is no sibling to
+protect.
 
-This means **self-update is disabled on this unit while both slots are
+That shared definition is not a nicety. When the project_name test broke on
+1.6.5 it failed in both places at once: the siblings disappeared from Home,
+and, quietly, the guard stopped protecting them, so a self-update would have
+erased MicroBASIC. Builds without `CROSSPOINT_DUAL_BOOT` keep the project_name
+comparison, because on a plain A/B device the other slot really is a spare copy
+of this firmware that a self-update should replace.
+
+This means **self-update is disabled on this unit while the other slots are
 occupied**, by design. To update the reader, flash `app0` over USB.
 
 ## If something goes wrong

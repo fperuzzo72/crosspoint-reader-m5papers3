@@ -277,12 +277,26 @@ Result validateImageFile(const char* sdPath, size_t partitionSize) {
 
 bool destHoldsForeignApp(const esp_partition_t* dest) {
   const esp_partition_t* running = esp_ota_get_running_partition();
-  if (!running) return false;
-  esp_app_desc_t myDesc;
+  if (!running || !dest || dest == running) return false;
+  // An empty or unreadable slot has no esp_app_desc_t: nothing to protect.
   esp_app_desc_t destDesc;
-  if (esp_ota_get_partition_description(running, &myDesc) != ESP_OK) return false;
   if (esp_ota_get_partition_description(dest, &destDesc) != ESP_OK) return false;
+#if defined(CROSSPOINT_DUAL_BOOT) && CROSSPOINT_DUAL_BOOT
+  // On a dual-boot unit every other app slot belongs to another project by
+  // construction, so a valid image there is a sibling, full stop. project_name
+  // cannot be the test here: an env that extends only `base` links the
+  // prebuilt Arduino libs and every such image is stamped
+  // "arduino-lib-builder", this firmware and its siblings alike, so comparing
+  // names made MicroBASIC and RetroComputer look like copies of CrossPoint.
+  // That hid them from Home AND let a self-update overwrite them.
+  return true;
+#else
+  // Plain A/B device: the other slot normally holds an older copy of this same
+  // firmware, which a self-update is supposed to replace.
+  esp_app_desc_t myDesc;
+  if (esp_ota_get_partition_description(running, &myDesc) != ESP_OK) return false;
   return strncmp(myDesc.project_name, destDesc.project_name, sizeof(myDesc.project_name)) != 0;
+#endif
 }
 
 Result flashFromSdPath(const char* sdPath, ProgressCb onProgress, void* ctx, bool alreadyValidated) {

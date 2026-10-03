@@ -38,10 +38,10 @@ struct OtaAppEntry {
 void registerOtaAppName(const char* name);
 
 // Fills `apps[]` with the sibling apps in the other OTA slots and returns how
-// many were found. A slot is a sibling only if it holds a *different* project
-// than the one running (same esp_app_desc_t.project_name test the self-update
-// guard uses), so an empty slot, or a stale A/B copy of this same firmware,
-// is not offered as something to switch to.
+// many were found: every other slot holding a valid image. Same test as the
+// self-update guard (firmware_flash::destHoldsForeignApp), so anything shown
+// here is also protected from being overwritten. An empty slot is skipped. Not
+// project_name: on this board every image says "arduino-lib-builder".
 int detectOtaApps(OtaAppEntry* apps, int maxApps);
 
 // Points otadata at `partitionSubtype` and restarts into it. Does nothing if
