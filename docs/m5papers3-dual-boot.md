@@ -164,6 +164,13 @@ A slot only counts as a sibling if it holds a *different* project, tested with
 the same `esp_app_desc_t.project_name` comparison the self-update guard uses.
 An empty slot, or a stale A/B copy of this same firmware, is not offered.
 
+**The Cover Grid theme does not show the siblings.** Added in upstream 1.6.5,
+it builds its own home items and its own navigation, and nothing appends to
+them, so an entry counted there would be selectable without ever being drawn.
+Detection is skipped under that theme instead. If a sibling app is missing from
+Home, check the UI theme in Settings before suspecting the otadata. The list
+themes, Lyra included, show it normally.
+
 Two details worth knowing, both inherited from MicroWriter's patch sets
 (`MicroWriter-BASIC-PaperS3/patches/`, `MicroWriter/patches/crosspoint-1.5.0/`), which
 this is a direct port of:

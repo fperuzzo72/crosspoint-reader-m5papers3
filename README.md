@@ -30,6 +30,32 @@ This is **not** the same hardware as the SDK's `papermono` board (different
 touch chip, RTC, and power topology). See the doc above for the comparison if
 you're not sure which one matches your device.
 
+## The interface runs upside down
+
+This port draws the whole UI rotated 180 degrees from the panel's native "up".
+The board has no navigation buttons, so it is held by the bezel, and its reset
+button sits exactly where a hand rests while reading. Turning the interface
+over moves it to the far edge.
+
+It is not a user setting, because it is a property of how the device is held,
+not a preference. `-DCROSSPOINT_UI_ROTATE_180=1` in `[env:m5papers3]` turns it
+on and no other env sets it.
+
+The mechanism is one stored value rather than a transform sprinkled through the
+drawing code. `GfxRenderer` already had all four orientations, and
+`PortraitInverted` is exactly the half turn of `Portrait` (as
+`LandscapeClockwise` is of `LandscapeCounterClockwise`), in both the drawing
+transform and the touch transform. So `setOrientation()` stores the rotated
+value in the member every geometry path already reads, and drawing, the bezel
+insets and `tapToLogical()` all follow together. `getOrientation()` still
+reports the unrotated value, which is what callers want: they use it to pick
+portrait against landscape metrics, and a half turn does not change those.
+
+Touch follows the screen by construction, not by a second correction. The four
+orientations' `tapToLogical()` cases are the exact inverses of the matching
+`rotateCoordinates()` cases, verified by round-tripping every case before this
+went near hardware.
+
 ## Dual-boot: sharing the device with MicroBASIC
 
 The dev unit this port is developed on carries **two unrelated firmwares at

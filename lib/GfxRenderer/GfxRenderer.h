@@ -1,5 +1,10 @@
 #pragma once
 
+// Off everywhere except the envs that ask for it; see applyUiRotation() below.
+#ifndef CROSSPOINT_UI_ROTATE_180
+#define CROSSPOINT_UI_ROTATE_180 0
+#endif
+
 #include <EpdFontFamily.h>
 #include <HalDisplay.h>
 
@@ -43,13 +48,52 @@ class GfxRenderer {
     LandscapeCounterClockwise  // 800x480 logical coordinates, native panel orientation
   };
 
+  // Whole-interface 180-degree rotation, off unless the env asks for it.
+  //
+  // The M5PaperS3 has no navigation buttons and its reset button sits where a
+  // hand rests while reading, so that port runs the entire UI upside down
+  // relative to the panel's native "up". Not a user setting: it is a property
+  // of how the device is held.
+  //
+  // Stored rather than applied at each use. Every geometry path in this class
+  // reads the `orientation` member (rotateCoordinates, tapToLogical, the bezel
+  // insets in getOrientedViewableTRBL), so flipping the value once on the way
+  // in carries drawing and touch together and leaves roughly twenty call sites
+  // untouched. getOrientation() reports the UNrotated value on purpose: callers
+  // use it to choose portrait against landscape metrics, which a half turn does
+  // not change, and the save/restore pairs in the themes would otherwise flip a
+  // second time on restore.
+  static constexpr Orientation rotate180(const Orientation o) {
+    switch (o) {
+      case Portrait:
+        return PortraitInverted;
+      case PortraitInverted:
+        return Portrait;
+      case LandscapeClockwise:
+        return LandscapeCounterClockwise;
+      case LandscapeCounterClockwise:
+      default:
+        return LandscapeClockwise;
+    }
+  }
+  static constexpr Orientation applyUiRotation(const Orientation o) {
+#if CROSSPOINT_UI_ROTATE_180
+    return rotate180(o);
+#else
+    return o;
+#endif
+  }
+
  private:
   static constexpr size_t BW_BUFFER_CHUNK_SIZE = 8000;  // 8KB chunks to allow for non-contiguous memory
 
   HalDisplay& display;
   RenderMode renderMode;
   mutable bool absoluteGrayPlanes = false;
+  // Rotated by applyUiRotation(): the frame every geometry path works in.
   Orientation orientation;
+  // What setOrientation() was actually handed, returned by getOrientation().
+  Orientation logicalOrientation;
   bool fadingFix;
   uint8_t* frameBuffer = nullptr;
   uint16_t panelWidth = HalDisplay::DISPLAY_WIDTH;
@@ -137,7 +181,11 @@ class GfxRenderer {
 
  public:
   explicit GfxRenderer(HalDisplay& halDisplay)
-      : display(halDisplay), renderMode(BW), orientation(Portrait), fadingFix(false) {}
+      : display(halDisplay),
+        renderMode(BW),
+        orientation(applyUiRotation(Portrait)),
+        logicalOrientation(Portrait),
+        fadingFix(false) {}
   ~GfxRenderer() { freeBwBufferChunks(); }
 
   // Setup
@@ -206,8 +254,11 @@ class GfxRenderer {
                              bool includeSpace, bool includeHyphen, uint8_t styleMask = 0x0F) const;
 
   // Orientation control (affects logical width/height and coordinate transforms)
-  void setOrientation(const Orientation o) { orientation = o; }
-  Orientation getOrientation() const { return orientation; }
+  void setOrientation(const Orientation o) {
+    logicalOrientation = o;
+    orientation = applyUiRotation(o);
+  }
+  Orientation getOrientation() const { return logicalOrientation; }
 
   // Fading fix control
   void setFadingFix(const bool enabled) { fadingFix = enabled; }
